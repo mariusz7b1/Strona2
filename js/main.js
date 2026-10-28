@@ -1,37 +1,51 @@
-const slides = Array.from(document.querySelectorAll('.slide'));
-let currentIndex = 0;
-let intervalId = null;
+(() => {
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    if (!slides.length) return;
 
-function showSlide(index) {
-    slides.forEach((slide, i) => slide.classList.toggle('active', i === index));
-}
+    const thumbs = Array.from(document.querySelectorAll('.thumb'));
+    const caption = document.getElementById('caption');
+    const toggle = document.getElementById('toggle');
+    const DELAY = 3000;
+    let current = 0;
+    let timer = null;
 
-function showNextSlide() {
-    currentIndex = (currentIndex + 1) % slides.length;
-    showSlide(currentIndex);
-}
+    function show(index) {
+        current = (index + slides.length) % slides.length;
+        slides.forEach((s, i) => s.classList.toggle('active', i === current));
+        thumbs.forEach((t, i) => t.classList.toggle('active', i === current));
+        caption.textContent = `${current + 1} / ${slides.length} – ${slides[current].alt}`;
+    }
 
-function showPreviousSlide() {
-    currentIndex = (currentIndex - 1 + slides.length) % slides.length;
-    showSlide(currentIndex);
-}
+    function play() {
+        if (timer) return;
+        timer = setInterval(() => show(current + 1), DELAY);
+        toggle.textContent = 'Stop';
+    }
 
-function startSlideShow() {
-    intervalId = setInterval(showNextSlide, 3000);
-    document.getElementById("play").style.display = "none";
-    document.getElementById("pause").style.display = "";
-}
+    function stop() {
+        clearInterval(timer);
+        timer = null;
+        toggle.textContent = 'Start';
+    }
 
-function stopSlideShow() {
-    clearInterval(intervalId);
-    intervalId = null;
-    document.getElementById("play").style.display = "";
-    document.getElementById("pause").style.display = "none";
-}
+    function go(index) {
+        const playing = timer !== null;
+        stop();
+        show(index);
+        if (playing) play();
+    }
 
-document.getElementById("next").addEventListener("click", showNextSlide);
-document.getElementById("prev").addEventListener("click", showPreviousSlide);
-document.getElementById("play").addEventListener("click", startSlideShow);
-document.getElementById("pause").addEventListener("click", stopSlideShow);
+    document.getElementById('prev').addEventListener('click', () => go(current - 1));
+    document.getElementById('next').addEventListener('click', () => go(current + 1));
+    toggle.addEventListener('click', () => (timer ? stop() : play()));
+    thumbs.forEach(t => t.addEventListener('click', () => go(Number(t.dataset.index))));
 
-startSlideShow();
+    document.addEventListener('keydown', e => {
+        if (e.key === 'ArrowLeft') go(current - 1);
+        else if (e.key === 'ArrowRight') go(current + 1);
+        else if (e.key === ' ') { e.preventDefault(); timer ? stop() : play(); }
+    });
+
+    show(0);
+    if (slides.length > 1) play();
+})();
